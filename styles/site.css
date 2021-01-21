@@ -1,13 +1,16 @@
+.pixel {
+  display: inline-block;
+  color: white;
+  background-color: blue;
+  margin: 0;
+}
+
+#game-board {
+  color: #ffffff;
+  background-color: #000000;
+}
+
 h1 {
   color: red;
   background-color: white;
-}
-.test-div {
-  width: 10px;
-  height: 10px;
-  margin: 5px;
-  display: inline-block;
-  border: 5px solid black;
-  color: white;
-  background-color: blue;
 }
