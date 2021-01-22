@@ -1,13 +1,14 @@
-.pixel {
-  display: inline-block;
-  color: white;
-  background-color: blue;
-  margin: 0;
-}
-
 #game-board {
   color: #ffffff;
   background-color: #000000;
+  display: flex;
+  flex-wrap: wrap;
+  padding: 5px;
+}
+
+.pixel {
+  color: #ffffff;
+  background-color: #1c0b26;
 }
 
 h1 {
