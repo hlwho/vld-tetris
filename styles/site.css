@@ -1,17 +1,42 @@
 #game-board {
   color: #ffffff;
-  background-color: #000000;
+  background-color: #1e1c2d;
   display: flex;
   flex-wrap: wrap;
   padding: 5px;
 }
 
-.pixel {
-  color: #ffffff;
-  background-color: #1c0b26;
-}
-
 h1 {
   color: red;
   background-color: white;
+}
+
+.block {
+  border-style: outset;
+  border-color: #b6fffc;
+}
+
+.s-block {
+  color: #ffffff;
+  background-color: #4a3ba1;
+}
+
+.t-block {
+  color: #ffffff;
+  background-color: #e33641;
+}
+
+.j-block {
+  color: #ffffff;
+  background-color: #55b63e;
+}
+
+.i-block {
+  color: #ffffff;
+  background-color: #4086c7;
+}
+
+.o-block {
+  color: #ffffff;
+  background-color: #e8c442;
 }
