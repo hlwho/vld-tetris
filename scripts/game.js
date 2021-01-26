@@ -3,36 +3,39 @@
 // dynamically loading and forcing the loaded script to execute is messy
 // and ES6 modules standard is overkill for this (intentionally vanilla) project
 const PIXELSIZE = 20;
-const GAME_WIDTH = 10;
+const GAME_WIDTH = 10; // pixels of size PIXELSIZE
 const GAME_HEIGHT = 20;
-const PLAYER_START_POS = Math.floor(GAME_WIDTH / 2);
+// idx of a pixel one row above entry point at top of game board
+// where game board is a 1D array of pixels
+// displayed as a grid with width GAME_WIDTH
+// ('above' s.t. entering blocks that end the game are rendered properly)
+const PLAYER_START_POS = Math.floor(GAME_WIDTH / 2) - 2 - GAME_WIDTH;
 
-// record block indices for each rotation of each block shape
-// imagining each block existing in a 4 x 4 square at the upper left-most
-// corner of the game board
-// i.e. the origin of each block occurs at pixelLst[0] wrt to the block indices
+// pixel indices to game board for each rotation of each block shape
+// where position pixel with idx 0 is the bottom-left-most pixel in a square
+// containing all a block's rotations
 const sBlock = [
-  [GAME_WIDTH, 1 + GAME_WIDTH, 1 + 2 * GAME_WIDTH, 2 + 2 * GAME_WIDTH],
-  [2, 1 + GAME_WIDTH, 2 + GAME_WIDTH, 1 + 2 * GAME_WIDTH]
+  [1, 2, -GAME_WIDTH, 1 - GAME_WIDTH],
+  [1, 1 - GAME_WIDTH, 2 - GAME_WIDTH, 2 - 2 * GAME_WIDTH]
 ];
 const tBlock = [
-  [1, GAME_WIDTH, 1 + GAME_WIDTH, 2 + GAME_WIDTH],
-  [1, 1 + GAME_WIDTH, 2 + GAME_WIDTH, 1 + 2 * GAME_WIDTH],
-  [GAME_WIDTH, 1 + GAME_WIDTH, 2 + GAME_WIDTH, 1 + 2 * GAME_WIDTH],
-  [1, GAME_WIDTH, 1 + GAME_WIDTH, 1 + 2 * GAME_WIDTH]
+  [1, -GAME_WIDTH, 1 - GAME_WIDTH, 2 - GAME_WIDTH],
+  [1, -GAME_WIDTH, 1 - GAME_WIDTH, 1 - 2 * GAME_WIDTH],
+  [-GAME_WIDTH, 1 - GAME_WIDTH, 2 - GAME_WIDTH, 1 - 2 * GAME_WIDTH],
+  [1, 1 - GAME_WIDTH, 2 - GAME_WIDTH, 1 - 2 * GAME_WIDTH]
 ];
 const jBlock = [
-  [1, 2, 1 + GAME_WIDTH, 1 + 2 * GAME_WIDTH],
-  [GAME_WIDTH, 1 + GAME_WIDTH, 2 + GAME_WIDTH, 2 + 2 * GAME_WIDTH],
-  [1, 1 + GAME_WIDTH, 2 * GAME_WIDTH, 1 + 2 * GAME_WIDTH],
-  [GAME_WIDTH, 2 * GAME_WIDTH, 1 + 2 * GAME_WIDTH, 2 + 2 * GAME_WIDTH]
+  [1, 2, 2 - GAME_WIDTH, 2 - 2 * GAME_WIDTH],
+  [0, 1, 2, -GAME_WIDTH],
+  [0, -GAME_WIDTH, -2 * GAME_WIDTH, 1 - 2 * GAME_WIDTH],
+  [2 - GAME_WIDTH, -2 * GAME_WIDTH, 1 - 2 * GAME_WIDTH, 2 - 2 * GAME_WIDTH]
 ];
 const iBlock = [
-  [1, 1 + GAME_WIDTH, 1 + 2 * GAME_WIDTH, 1 + 3 * GAME_WIDTH, 1 + 4 * GAME_WIDTH],
-  [GAME_WIDTH, 1 + GAME_WIDTH, 2 + GAME_WIDTH, 3 + GAME_WIDTH]
+  [1, 1 - GAME_WIDTH, 1 - 2 * GAME_WIDTH, 1 - 3 * GAME_WIDTH],
+  [-2 * GAME_WIDTH, 1 - 2 * GAME_WIDTH, 2 - 2 * GAME_WIDTH, 3 - 2 * GAME_WIDTH]
 ];
 const oBlock = [
-  [0, 1, GAME_WIDTH, 1 + GAME_WIDTH]
+  [0, 1, -GAME_WIDTH, 1 - GAME_WIDTH]
 ];
 const blockLst = [sBlock, tBlock, jBlock, iBlock, oBlock];
 var blockStyleClasses = ['s-block', 't-block', 'j-block', 'i-block', 'o-block']
@@ -60,7 +63,7 @@ dynamicStyle.appendChild(
 );
 // divs representing 'pixels' on the game board
 var pixelLst = [];
-// gameBoardMap[i] == 1 if there is a block filling that pixel; 0 otherwise
+// gameBoardMap[i] > 0 if block is filling that pixel; 0 otherwise
 var gameBoardMap = [];
 for (let i = 0; i < GAME_WIDTH * GAME_HEIGHT; i++) {
   let pixel = document.createElement('div');
@@ -82,36 +85,47 @@ dynamicStyle.appendChild(
 );
 
 
+// display functions
 /**
-* Draw block onto the gameBoard pixels (pixelLst) at location loc
-* and using the style classes in styleList
+* Edit all pixels in block on the gameBoard pixels (pixelLst) at position pos
+* using the style classes in styleList and function f
 * @param {number} pos index of the position at which to start drawing
-* @param {number array} block pixel indices of the block to draw
+* @param {number array} block pixel indices of the block to draw, 0 at bottom left
 * @param {string array} styleList list of css classes with which to style block
+* @param {function} f takes arguments (div, style class) and returns nothing
 */
-function draw(pos, block, styleList) {
+function editPixels(pos, block, styleList, f) {
   block.forEach(idx => {
-    let p = pixelLst[pos + idx];
-    styleList.forEach(sc => {
-      p.classList.add(sc);
-    });
+    let pidx = pos + idx;
+    if (pidx >= 0 && pidx < pixelLst.length) {
+      let p = pixelLst[pidx];
+      styleList.forEach(sc => {
+        f(p, sc);
+      });
+    }
   });
 }
 
 /**
-* Erase block from the gameBoard pixels (pixelLst) at location loc
+* Draw block onto the gameBoard pixels (pixelLst) at position pos
+* and using the style classes in styleList
+* @param {number} pos index of the position at which to start drawing
+* @param {number array} block pixel indices of the block to draw, 0 at bottom left
+* @param {string array} styleList list of css classes with which to style block
+*/
+function draw(pos, block, styleList) {
+  editPixels(pos, block, styleList, (p, sc) => { p.classList.add(sc); });
+}
+
+/**
+* Erase block from the gameBoard pixels (pixelLst) at position pos
 * by unusing the style classes in styleList
 * @param {number} pos index of the position at which to start erasing
-* @param {number array} block pixel indices of the block to erase
+* @param {number array} block pixel indices of the block to erase, 0 at bottom left
 * @param {string array} styleList list of css classes with which block is styled
 */
 function erase(pos, block, styleList) {
-  block.forEach(idx => {
-    let p = pixelLst[pos + idx];
-    styleList.forEach(sc => {
-      p.classList.remove(sc);
-    });
-  });
+  editPixels(pos, block, styleList, (p, sc) => { p.classList.remove(sc); });
 }
 
 
@@ -162,7 +176,7 @@ function clearGameBoard() {
 }
 
 /**
-* End the game
+* End the Tetris game
 */
 function gameOver() {
   clearInterval(playerGravity);
@@ -177,9 +191,9 @@ function gameOver() {
 * @param {number array} block pixel indices of the block to check
 */
 function blockLanded(pos, block) {
-  let hitBottomOrBlock = block.some(bidx => {
-    let nextPos = pos + bidx + GAME_WIDTH;
-    return nextPos >= GAME_WIDTH * GAME_HEIGHT || gameBoardMap[nextPos];
+  let hitBottomOrBlock = block.some(idx => {
+    let nextPos = pos + idx + GAME_WIDTH;
+    return nextPos >= pixelLst.length || gameBoardMap[nextPos];
   });
   return hitBottomOrBlock;
 }
@@ -188,32 +202,35 @@ function blockLanded(pos, block) {
 * Mark the block as fixed on the game board map
 * @param {number} pos index of the position of the block to mark as fixed
 * @param {number array} block pixel indices of the block to mark as fixed
+* @param {number} blockId identifier of block to mark as fixed; blockId > 0
 */
-function fixBlock(pos, block) {
+function fixBlock(pos, block, blockId) {
   block.forEach(idx => {
-    gameBoardMap[pos + idx] = 1;
+    gameBoardMap[pos + idx] = blockId;
   });
 }
 
 /**
-* True if blocks have reached the top of the game board; False otherwise
+* True if blocks have exceeded the top of the game board; False otherwise
 * @param {number} pos index of the position of the last block placed
 * @param {number array} block pixel indices of the last block placed
 */
 function boardFilled(pos, block) {
-  return block.some(bidx => { return pos + bidx < GAME_WIDTH; });
+  return block.some(idx => { return pos + idx < 0; });
 }
 
 /**
 * Game loop which handles moving the player-controlled block downwards
+* and game overs
 */
 function movePlayerDown() {
   let block = blockLst[playerBlockIdx][playerBlockRot];
-  let switchBlock = blockLanded(playerBlockPos, block);
-  if (switchBlock && boardFilled(playerBlockPos, block)) {
+  let blockPlaced = blockLanded(playerBlockPos, block);
+  if (blockPlaced && boardFilled(playerBlockPos, block)) {
+    // placed block overflows game board top
     gameOver();
-  } else if (switchBlock) {
-    fixBlock(playerBlockPos, block);
+  } else if (blockPlaced) {
+    fixBlock(playerBlockPos, block, playerBlockIdx + 1);
     newPlayerBlock();
     draw(playerBlockPos,
       blockLst[playerBlockIdx][playerBlockRot],
@@ -226,13 +243,18 @@ function movePlayerDown() {
   }
 }
 
+/**
+* Start the tetris game
+*/
 function startGame() {
   clearGameBoard();
   newPlayerBlock();
-  playerGravity = setInterval(movePlayerDown, 500);
+  playerGravity = setInterval(movePlayerDown, 100);
 }
 
 startGame();
+
+
 
 
 console.log('clear 51:32');
